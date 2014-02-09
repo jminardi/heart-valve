@@ -1,4 +1,5 @@
 import numpy as np
+#import matplotlib.pyplot as plt
 
 from mecode import MeCode
 
@@ -30,7 +31,7 @@ class HeartValveModel(object):
         self.anchor_width = anchor_width
 
         self.circum = np.pi * diameter
-        self.z_height = np.zeros(len(self.get_targets()))
+        self.z_height = np.zeros(len(self.get_targets_y_spaced()))
 
     def get_targets(self):
         num_segments = round_multiple(self.circum / self.nozzle_diameter) / 2
@@ -40,20 +41,29 @@ class HeartValveModel(object):
         y = (r * np.sin(theta)) + self.start[1]
         return np.array([x, y]).T
 
+    def get_targets_y_spaced(self):
+        a, b = self.start
+        r = self.diameter / 2.0
+        y = np.arange(b, -(b + r), -self.nozzle_diameter)
+        x = np.sqrt(r ** 2 - (y - b) ** 2) + a
+        targets_x = np.hstack((-1 * x, x[::-1]))
+        targets_y = np.hstack((y, y[::-1]))
+        return np.array([targets_x, targets_y]).T
+
     def get_anchor_idxs(self):
-        targets = self.get_targets()
+        targets = self.get_targets_y_spaced()
         anchors_idx = np.linspace(0, len(targets), self.num_anchors + 1)
         anchors_idx = np.round(anchors_idx[:-1])
         anchors_idx += (anchors_idx[1] - anchors_idx[0]) / 2
         return anchors_idx.astype('int')
 
     def get_anchors(self):
-        targets = self.get_targets()
+        targets = self.get_targets_y_spaced()
         anchors = targets[self.get_anchor_idxs()]
         return anchors
 
     def draw_from_anchors(self):
-        targets = self.get_targets()
+        targets = self.get_targets_y_spaced()
         anchors = self.get_anchors()
         right_targets = targets[len(targets) / 2:]
         left_anchors = anchors[:len(anchors) / 2]
@@ -81,6 +91,36 @@ class HeartValveModel(object):
                               x=anchor[0], y=anchor[1], z=anchor_z)
                 tic *= -1
 
+    def draw_linear(self, z=0):
+        targets = self.get_targets_y_spaced()
+        left_targets = targets[:len(targets) / 2]
+        right_targets = targets[len(targets) / 2:]
+        tic = 1
+        for left, right in zip(left_targets, right_targets[::-1]):
+            if tic == 1:
+                g.abs_move(x=left[0], y=left[1], z=z)
+                g.abs_move(x=right[0], y=right[1], z=z)
+            else:
+                g.abs_move(x=right[0], y=right[1], z=z)
+                g.abs_move(x=left[0], y=left[1], z=z)
+            tic *= -1
+
+    def draw_basic_arcs(self, z=0):
+        targets = self.get_targets_y_spaced()
+        left_targets = targets[:len(targets) / 2]
+        right_targets = targets[len(targets) / 2:]
+        tic = 1
+        for left, right in zip(left_targets, right_targets[::-1]):
+            if tic == 1:
+                g.abs_move(x=left[0], y=left[1], z=z)
+                g.abs_arc(x=right[0], y=right[1], z=z, radius=self.diameter,
+                          direction='CCW')
+            else:
+                g.abs_move(x=right[0], y=right[1])
+                g.abs_arc(x=left[0], y=left[1], z=z, radius=self.diameter,
+                          direction='CW')
+            tic *= -1
+
 
 def round_multiple(x, multiple=4.0):
     """ Round to the closest integer multiple of the given `multiple`.
@@ -90,4 +130,5 @@ def round_multiple(x, multiple=4.0):
 
 if __name__ == '__main__':
     valve = HeartValveModel()
-    valve.draw_from_anchors()
+    for z in np.arange(0, .5, .1):
+        valve.draw_linear(z)
