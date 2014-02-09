@@ -30,6 +30,7 @@ class HeartValveModel(object):
         self.anchor_width = anchor_width
 
         self.circum = np.pi * diameter
+        self.z_height = np.zeros(len(self.get_targets()))
 
     def get_targets(self):
         num_segments = round_multiple(self.circum / self.nozzle_diameter) / 2
@@ -59,21 +60,25 @@ class HeartValveModel(object):
         num_left_anchors = self.num_anchors / 2
         tic = 1
         anchor_idxs = self.get_anchor_idxs()
-        for i, anchor in enumerate(left_anchors[::-1]):
-            for target_idx in range(len(right_targets) / num_left_anchors):
-                z = (target_idx / self.anchor_width) * self.nozzle_diameter
-                offset = (target_idx % self.anchor_width) - (self.anchor_width
-                                                             / 2)
-                target = right_targets[(target_idx * num_left_anchors) - i]
-                anchor = targets[anchor_idxs[i] - offset]
+        for i in range(len((left_anchors))):
+            for j in range(len(right_targets) / num_left_anchors):
+                offset = (j % self.anchor_width) - (self.anchor_width / 2)
+                target_idx = ((j * num_left_anchors) - i) + (len(targets) / 2)
+                anchor_idx = anchor_idxs[i] - offset
+                target = targets[target_idx]
+                anchor = targets[anchor_idx]
+                target_z = self.z_height[target_idx]
+                self.z_height[target_idx] += 1 * self.nozzle_diameter
+                anchor_z = self.z_height[anchor_idx]
+                self.z_height[anchor_idx] += 1 * self.nozzle_diameter
                 if tic == 1:
-                    g.abs_move(anchor[0], anchor[1], z=z)
+                    g.abs_move(anchor[0], anchor[1], z=anchor_z)
                     g.abs_arc(direction='CCW', radius=20,
-                              x=target[0], y=target[1], z=0)
+                              x=target[0], y=target[1], z=target_z)
                 else:
-                    g.abs_move(target[0], target[1], z=0)
+                    g.abs_move(target[0], target[1], z=target_z)
                     g.abs_arc(direction='CW', radius=20,
-                              x=anchor[0], y=anchor[1], z=z)
+                              x=anchor[0], y=anchor[1], z=anchor_z)
                 tic *= -1
 
 
