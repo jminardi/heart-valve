@@ -3,7 +3,8 @@ import numpy as np
 
 from mecode import MeCode
 
-g = MeCode()
+g = MeCode(outfile="C:\Users\Lewis Group\Documents\GitHub\heart-valve\out.pgm",
+        print_lines=False)
 
 
 class HeartValveModel(object):
@@ -44,9 +45,10 @@ class HeartValveModel(object):
     def get_targets_y_spaced(self):
         a, b = self.start
         r = self.diameter / 2.0
-        y = np.arange(b, -(b + r), -self.nozzle_diameter)
-        x = np.sqrt(r ** 2 - (y - b) ** 2) + a
-        targets_x = np.hstack((-1 * x, x[::-1]))
+        y = np.arange(0, -r, -self.nozzle_diameter)
+        x = np.sqrt(r ** 2 - y ** 2) + a
+        y += b
+        targets_x = np.hstack(((-1 * x) + 2*a, x[::-1]))
         targets_y = np.hstack((y, y[::-1]))
         return np.array([targets_x, targets_y]).T
 
@@ -82,13 +84,13 @@ class HeartValveModel(object):
                 anchor_z = self.z_height[anchor_idx]
                 self.z_height[anchor_idx] += 1 * self.nozzle_diameter
                 if tic == 1:
-                    g.abs_move(anchor[0], anchor[1], z=anchor_z)
+                    g.abs_move(anchor[0], anchor[1], A=anchor_z)
                     g.abs_arc(direction='CCW', radius=20,
-                              x=target[0], y=target[1], z=target_z)
+                              x=target[0], y=target[1], A=target_z)
                 else:
-                    g.abs_move(target[0], target[1], z=target_z)
+                    g.abs_move(target[0], target[1], A=target_z)
                     g.abs_arc(direction='CW', radius=20,
-                              x=anchor[0], y=anchor[1], z=anchor_z)
+                              x=anchor[0], y=anchor[1], A=anchor_z)
                 tic *= -1
 
     def draw_linear(self, z=0):
@@ -96,13 +98,15 @@ class HeartValveModel(object):
         left_targets = targets[:len(targets) / 2]
         right_targets = targets[len(targets) / 2:]
         tic = 1
+        g.abs_move(x=left_targets[0][0], y=left_targets[0][1], A=z)
+        g.set_valve(0, 1)
         for left, right in zip(left_targets, right_targets[::-1]):
             if tic == 1:
-                g.abs_move(x=left[0], y=left[1], z=z)
-                g.abs_move(x=right[0], y=right[1], z=z)
+                g.abs_move(x=left[0], y=left[1], A=z)
+                g.abs_move(x=right[0], y=right[1], A=z)
             else:
-                g.abs_move(x=right[0], y=right[1], z=z)
-                g.abs_move(x=left[0], y=left[1], z=z)
+                g.abs_move(x=right[0], y=right[1], A=z)
+                g.abs_move(x=left[0], y=left[1], A=z)
             tic *= -1
 
     def draw_basic_arcs(self, z=0):
@@ -116,7 +120,7 @@ class HeartValveModel(object):
                 g.abs_arc(x=right[0], y=right[1], z=z, radius=self.diameter,
                           direction='CCW')
             else:
-                g.abs_move(x=right[0], y=right[1])
+                g.abs_move(x=right[0], y=right[1], z=z)
                 g.abs_arc(x=left[0], y=left[1], z=z, radius=self.diameter,
                           direction='CW')
             tic *= -1
@@ -129,6 +133,18 @@ def round_multiple(x, multiple=4.0):
 
 
 if __name__ == '__main__':
-    valve = HeartValveModel()
-    for z in np.arange(0, .5, .1):
+    valve = HeartValveModel(nozzle_diameter=.18, diameter=40, start=(343+30, 70))
+    abs_0 = 79.141
+    g.feed(20)
+    g.abs_move(A=-5)
+    g.set_home(A=abs_0 - 5)
+    g.set_valve(0, 0)
+    g.set_pressure(9, 55)
+    g.toggle_pressure(9)
+    g.feed(12)
+    for z in np.arange(0.15, .75, .15):
         valve.draw_linear(z)
+        g.set_valve(0, 0)
+        g.abs_move(A=2)
+    g.toggle_pressure(9)
+    g.teardown()
