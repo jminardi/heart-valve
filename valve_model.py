@@ -1,16 +1,15 @@
+"""
+This code outputs the toolpath to create a heart valv
+"""
 import numpy as np
-#import matplotlib.pyplot as plt
 
 from mecode import MeCode
-
-g = MeCode(outfile="C:\Users\Lewis Group\Documents\GitHub\heart-valve\out.pgm",
-        print_lines=False)
 
 
 class HeartValveModel(object):
 
     def __init__(self, diameter=25, nozzle_diameter=0.1, start=(0, 0),
-                 num_anchors=8, anchor_width=10):
+                 num_anchors=8, anchor_width=10, clip_height=2):
         """
         Parameters
         ----------
@@ -24,23 +23,18 @@ class HeartValveModel(object):
             Total number of anchors. Should be a multiple of two.
         anchor_width : float
             Width of the bundle base in multiples of the nozzle_diameter.
+        clip_height : float
+            Safe height to raise to to clear all features.
         """
         self.diameter = diameter
         self.nozzle_diameter = nozzle_diameter
         self.start = start
         self.num_anchors = num_anchors
         self.anchor_width = anchor_width
+        self.clip_height = clip_height
 
         self.circum = np.pi * diameter
         self.z_height = np.zeros(len(self.get_targets_y_spaced()))
-
-    def get_targets(self):
-        num_segments = round_multiple(self.circum / self.nozzle_diameter) / 2
-        r = self.diameter / 2.0
-        theta = np.linspace(np.pi, 2 * np.pi, num_segments)
-        x = (r * np.cos(theta)) + self.start[0]
-        y = (r * np.sin(theta)) + self.start[1]
-        return np.array([x, y]).T
 
     def get_targets_y_spaced(self):
         a, b = self.start
@@ -48,7 +42,7 @@ class HeartValveModel(object):
         y = np.arange(0, -r, -self.nozzle_diameter)
         x = np.sqrt(r ** 2 - y ** 2) + a
         y += b
-        targets_x = np.hstack(((-1 * x) + 2*a, x[::-1]))
+        targets_x = np.hstack(((-1 * x) + 2 * a, x[::-1]))
         targets_y = np.hstack((y, y[::-1]))
         return np.array([targets_x, targets_y]).T
 
@@ -64,15 +58,13 @@ class HeartValveModel(object):
         anchors = targets[self.get_anchor_idxs()]
         return anchors
 
-    def draw_from_anchors(self):
+    def draw_bundles(self, z=None):
         targets = self.get_targets_y_spaced()
-        anchors = self.get_anchors()
         right_targets = targets[len(targets) / 2:]
-        left_anchors = anchors[:len(anchors) / 2]
         num_left_anchors = self.num_anchors / 2
-        tic = 1
         anchor_idxs = self.get_anchor_idxs()
-        for i in range(len((left_anchors))):
+        tic = 1
+        for i in range(self.num_anchors / 2):
             for j in range(len(right_targets) / num_left_anchors):
                 offset = (j % self.anchor_width) - (self.anchor_width / 2)
                 target_idx = ((j * num_left_anchors) - i) + (len(targets) / 2)
@@ -98,16 +90,20 @@ class HeartValveModel(object):
         left_targets = targets[:len(targets) / 2]
         right_targets = targets[len(targets) / 2:]
         tic = 1
-        g.abs_move(x=left_targets[0][0], y=left_targets[0][1], A=z)
+        heaven = self.clip_height
+        g.abs_move(x=left_targets[0][0], y=left_targets[0][1], z=z + heaven)
+        g.clip('z', '-y', -heaven)
         g.set_valve(0, 1)
         for left, right in zip(left_targets, right_targets[::-1]):
             if tic == 1:
-                g.abs_move(x=left[0], y=left[1], A=z)
-                g.abs_move(x=right[0], y=right[1], A=z)
+                g.abs_move(x=left[0], y=left[1], z=z)
+                g.abs_move(x=right[0], y=right[1], z=z)
             else:
-                g.abs_move(x=right[0], y=right[1], A=z)
-                g.abs_move(x=left[0], y=left[1], A=z)
+                g.abs_move(x=right[0], y=right[1], z=z)
+                g.abs_move(x=left[0], y=left[1], z=z)
             tic *= -1
+        g.set_valve(0, 0)
+        g.clip('z', '-y', heaven)
 
     def draw_basic_arcs(self, z=0):
         targets = self.get_targets_y_spaced()
@@ -125,15 +121,27 @@ class HeartValveModel(object):
                           direction='CW')
             tic *= -1
 
-
-def round_multiple(x, multiple=4.0):
-    """ Round to the closest integer multiple of the given `multiple`.
-    """
-    return np.round(x / multiple) * multiple
+    def draw_layers(self, type='linear', num=5, height='auto'):
+        if type == 'linear':
+            draw = self.draw_linear
+        elif type == 'arc':
+            draw = self.draw_basic_arcs
+        elif type == 'bundles':
+            draw = self.draw_bundles
+        if height == 'auto':
+            height = self.nozzle_diameter
 
 
 if __name__ == '__main__':
-    valve = HeartValveModel(nozzle_diameter=.18, diameter=40, start=(343+30, 70))
+    g = MeCode(
+        #outfile=r"C:\Users\Lewis Group\Documents\GitHub\heart-valve\out.pgm",
+        #print_lines=False
+    )
+    valve = HeartValveModel(
+        nozzle_diameter=.18,
+        diameter=40,
+        #start=(373, 70),
+    )
     abs_0 = 79.141
     g.feed(20)
     g.abs_move(A=-5)
@@ -142,9 +150,10 @@ if __name__ == '__main__':
     g.set_pressure(9, 55)
     g.toggle_pressure(9)
     g.feed(12)
-    for z in np.arange(0.15, .75, .15):
-        valve.draw_linear(z)
-        g.set_valve(0, 0)
-        g.abs_move(A=2)
+    valve.draw_linear()
+    #for z in np.arange(0.15, .75, .15):
+    #    valve.draw_linear(z)
+    #    g.set_valve(0, 0)
+    #    g.abs_move(A=2)
     g.toggle_pressure(9)
     g.teardown()
