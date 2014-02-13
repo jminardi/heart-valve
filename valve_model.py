@@ -46,7 +46,7 @@ class HeartValveModel(object):
 
         self.circum = np.pi * diameter
         self.z_heights = (np.zeros(len(self.get_targets_y_spaced())) +
-                          layer_thicknes)
+                          (0.77 * layer_thicknes))
 
     def get_targets_y_spaced(self):
         a, b = self.start
@@ -88,21 +88,25 @@ class HeartValveModel(object):
                 anchor_z = self.z_heights[anchor_idx]
                 self.z_heights[anchor_idx] += z
                 if tic == 1:
-                    g.abs_move(anchor[0], anchor[1], z=anchor_z + heaven)
-                    g.clip('z', '-x', -heaven)
+                    g.abs_move(anchor[0], anchor[1], A=anchor_z + heaven)
+                    #g.clip('A', '-x', -heaven)
+                    g.move(A=-heaven)
                     g.set_valve(0, 1)
-                    g.abs_arc(direction='CCW', radius=r,
-                              x=target[0], y=target[1], z=target_z)
+                    g.abs_move(#direction='CCW', #radius=r,
+                              x=target[0], y=target[1], A=target_z)
                     g.set_valve(0, 0)
-                    g.clip('z', '+x', heaven)
+                    #g.clip('A', '+x', heaven)
+                    g.move(A=heaven)
                 else:
-                    g.abs_move(target[0], target[1], z=target_z + heaven)
-                    g.clip('z', '+x', -heaven)
+                    g.abs_move(target[0], target[1], A=target_z + heaven)
+                    #g.clip('A', '+x', -heaven)
+                    g.move(A=-heaven)
                     g.set_valve(0, 1)
-                    g.abs_arc(direction='CW', radius=r,
-                              x=anchor[0], y=anchor[1], z=anchor_z)
+                    g.abs_move(#direction='CW', #radius=r,
+                              x=anchor[0], y=anchor[1], A=anchor_z)
                     g.set_valve(0, 0)
-                    g.clip('z', '-x', heaven)
+                    #g.clip('A', '-x', heaven)
+                    g.move(A=heaven)
                 tic *= -1
 
     def draw_bundles_right(self):
@@ -128,21 +132,25 @@ class HeartValveModel(object):
                 anchor_z = self.z_heights[anchor_idx]
                 self.z_heights[anchor_idx] += z
                 if tic == 1:
-                    g.abs_move(anchor[0], anchor[1], z=anchor_z + heaven)
-                    g.clip('z', '+x', -heaven)
+                    g.abs_move(anchor[0], anchor[1], A=anchor_z + heaven)
+                    #g.clip('A', '+x', -heaven)
+                    g.move(A=-heaven)
                     g.set_valve(0, 1)
-                    g.abs_arc(direction='CW', radius=r,
-                              x=target[0], y=target[1], z=target_z)
+                    g.abs_move(#direction='CW', #radius=r,
+                              x=target[0], y=target[1], A=target_z)
                     g.set_valve(0, 0)
-                    g.clip('z', '-x', heaven)
+                    #g.clip('A', '-x', heaven)
+                    g.move(A=heaven)
                 else:
-                    g.abs_move(target[0], target[1], z=target_z + heaven)
-                    g.clip('z', '-x', -heaven)
+                    g.abs_move(target[0], target[1], A=target_z + heaven)
+                    #g.clip('A', '-x', -heaven)
+                    g.move(A=-heaven)
                     g.set_valve(0, 1)
-                    g.abs_arc(direction='CCW', radius=r,
-                              x=anchor[0], y=anchor[1], z=anchor_z)
+                    g.abs_move(#direction='CCW', #radius=r,
+                              x=anchor[0], y=anchor[1], A=anchor_z)
                     g.set_valve(0, 0)
-                    g.clip('z', '+x', heaven)
+                    #g.clip('A', '+x', heaven)
+                    g.move(A=heaven)
                 tic *= -1
 
     def draw_linear(self, z=0):
@@ -206,24 +214,26 @@ class HeartValveModel(object):
 
 if __name__ == '__main__':
     g = MeCode(
-        #outfile=r"C:\Users\Lewis Group\Documents\GitHub\heart-valve\out.pgm",
-        #print_lines=False
+        outfile=r"C:\Users\Lewis Group\Documents\GitHub\heart-valve\out.pgm",
+        print_lines=False
     )
     valve = HeartValveModel(
-        #line_spacing=.18,
-        #diameter=40,
-        #start=(373, 70),
+        line_spacing=0.05,
+        diameter=25,
+        layer_thicknes=0.030,
+        start=(363.8855, 56.3220),
     )
-    abs_0 = 79.141
+    g.setup()
+    abs_0 = 49.868
     g.feed(20)
-    #g.abs_move(A=-5)
-    #g.set_home(A=abs_0 - 5)
+    g.abs_move(A=-5)
+    g.set_home(A=abs_0 - 5)
     g.set_valve(0, 0)
-    g.set_pressure(9, 55)
-    g.toggle_pressure(9)
-    g.feed(12)
+    g.set_pressure(4, 30)
+    g.toggle_pressure(4)
+    g.feed(4)
 
     valve.draw_layers('bundles', 4)
 
-    g.toggle_pressure(9)
+    g.toggle_pressure(4)
     g.teardown()
