@@ -88,7 +88,7 @@ class HeartValveModel(object):
                 self.z_heights[anchor_idx] += z
                 if tic == 1:
                     g.abs_move(anchor[0], anchor[1], z=anchor_z + heaven)
-                    g.clip('z', '+x', -heaven)
+                    g.clip('z', '-x', -heaven)
                     g.set_valve(0, 1)
                     g.abs_arc(direction='CCW', radius=r,
                               x=target[0], y=target[1], z=target_z)
@@ -96,7 +96,7 @@ class HeartValveModel(object):
                     g.clip('z', '+x', heaven)
                 else:
                     g.abs_move(target[0], target[1], z=target_z + heaven)
-                    g.clip('z', '-x', -heaven)
+                    g.clip('z', '+x', -heaven)
                     g.set_valve(0, 1)
                     g.abs_arc(direction='CW', radius=r,
                               x=anchor[0], y=anchor[1], z=anchor_z)
@@ -128,7 +128,7 @@ class HeartValveModel(object):
                 self.z_heights[anchor_idx] += z
                 if tic == 1:
                     g.abs_move(anchor[0], anchor[1], z=anchor_z + heaven)
-                    g.clip('z', '-x', -heaven)
+                    g.clip('z', '+x', -heaven)
                     g.set_valve(0, 1)
                     g.abs_arc(direction='CW', radius=r,
                               x=target[0], y=target[1], z=target_z)
@@ -136,7 +136,7 @@ class HeartValveModel(object):
                     g.clip('z', '-x', heaven)
                 else:
                     g.abs_move(target[0], target[1], z=target_z + heaven)
-                    g.clip('z', '+x', -heaven)
+                    g.clip('z', '-x', -heaven)
                     g.set_valve(0, 1)
                     g.abs_arc(direction='CCW', radius=r,
                               x=anchor[0], y=anchor[1], z=anchor_z)
@@ -170,7 +170,7 @@ class HeartValveModel(object):
         right_targets = targets[len(targets) / 2:]
         heaven = self.heaven
         g.abs_move(x=left_targets[0][0], y=left_targets[0][1], z=z + heaven)
-        g.clip('z', '+x', -heaven)
+        g.clip('z', '-x', -heaven)
         g.set_valve(0, 1)
         tic = 1
         for left, right in zip(left_targets, right_targets[::-1]):
