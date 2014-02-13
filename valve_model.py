@@ -1,5 +1,9 @@
 """
-This code outputs the toolpath to create a heart valv
+This code outputs the toolpath to create a heart valve
+
+Author: Jack Minardi
+Email: jminardi@seas.harvard.edu
+
 """
 import numpy as np
 
@@ -17,7 +21,7 @@ class HeartValveModel(object):
         diameter : float
             Diameter of the valve flap in mm.
         line_spacing : float
-            Diameter of the nozzel in mm.
+            Spacing between line end points.
         start : tuple of floats (len = 2)
             starting position in (x, y)
         num_anchors : int
@@ -26,6 +30,8 @@ class HeartValveModel(object):
             Width of the bundle base in multiples of the line_spacing.
         heaven : float
             Safe height to raise to to clear all features.
+        layer_thicknes : float
+            Height to raise in Z between layers.
         arc_radius : float
             Radius of the connecting arcs.
         """
@@ -59,12 +65,7 @@ class HeartValveModel(object):
         anchors_idx += (anchors_idx[1] - anchors_idx[0]) / 2
         return anchors_idx.astype('int')
 
-    def get_anchors(self):
-        targets = self.get_targets_y_spaced()
-        anchors = targets[self.get_anchor_idxs()]
-        return anchors
-
-    def draw_bundles(self, z=None):
+    def draw_bundles(self):
         targets = self.get_targets_y_spaced()
         right_targets = targets[len(targets) / 2:]
         num_left_anchors = self.num_anchors / 2
@@ -104,7 +105,7 @@ class HeartValveModel(object):
                     g.clip('z', '-x', heaven)
                 tic *= -1
 
-    def draw_bundles_right(self, z=None):
+    def draw_bundles_right(self):
         targets = self.get_targets_y_spaced()
         left_targets = targets[:len(targets) / 2]
         num_right_anchors = self.num_anchors / 2
@@ -186,13 +187,18 @@ class HeartValveModel(object):
         g.set_valve(0, 0)
         g.clip('z', '-y', heaven)
 
-    def draw_layers(self, type='linear', num=5):
-        if type == 'linear':
+    def draw_layers(self, style='linear', num=5):
+        if style == 'linear':
             draw = self.draw_linear
-        elif type == 'arc':
+        elif style == 'arc':
             draw = self.draw_basic_arcs
-        elif type == 'bundles':
-            draw = self.draw_bundles
+        elif style == 'bundles':
+            for i in range(num):
+                if i % 2 == 0:
+                    self.draw_bundles()
+                else:
+                    self.draw_bundles_right()
+            return
         height = self.layer_thicknes
         for z_height in np.arange(height, height * (num + 1), height):
             draw(z=z_height)
@@ -217,8 +223,7 @@ if __name__ == '__main__':
     g.toggle_pressure(9)
     g.feed(12)
 
-    valve.draw_bundles()
-    valve.draw_bundles_right()
+    valve.draw_layers('bundles', 4)
 
     g.toggle_pressure(9)
     g.teardown()
