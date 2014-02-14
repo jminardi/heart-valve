@@ -221,15 +221,15 @@ if __name__ == '__main__':
         line_spacing=0.05,
         diameter=25,
         layer_thicknes=0.030,
-        start=(363.8855, 56.3220),
+        start=(397.976, 61.4568),
     )
     g.setup()
-    abs_0 = 49.868
+    abs_0 = 50.5
     g.feed(20)
     g.abs_move(A=-5)
     g.set_home(A=abs_0 - 5)
     g.set_valve(0, 0)
-    g.set_pressure(4, 30)
+    g.set_pressure(4, 15)
     g.toggle_pressure(4)
     g.feed(4)
 
