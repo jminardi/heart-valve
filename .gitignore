@@ -1,3 +1,7 @@
+*.pgm
+*.OGM
+
+
 *.py[cod]
 
 # C extensions
