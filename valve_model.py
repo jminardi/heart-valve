@@ -220,19 +220,20 @@ if __name__ == '__main__':
         print_lines=False
     )
     valve = HeartValveModel(
-        line_spacing=0.05,
+        line_spacing=0.04,
         diameter=25,
-        layer_thicknes=0.030,
-        start=(392.248, 55.799),
+        layer_thicknes=0.008,
+        start=(442.95, 91.05),
     )
     g.setup()
-    abs_0 = 49.9253
-    g.abs_move(A=-5)
-    g.set_home(A=abs_0 - 5)
+    abs_0 = 50.5317
+    g.feed(20)
+    g.abs_move(A=-45)
+    g.set_home(A=abs_0 - 45)
     g.set_valve(0, 0)
-    g.set_pressure(4, 15)
+    g.set_pressure(4, 35)
     g.toggle_pressure(4)
-    g.feed(1.2)
+    g.feed(3)
 
     valve.draw_layers('bundles', 4)
 
