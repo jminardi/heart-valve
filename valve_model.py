@@ -88,26 +88,27 @@ class HeartValveModel(object):
                 anchor_z = self.z_heights[anchor_idx]
                 self.z_heights[anchor_idx] += z
                 if tic == 1:
-                    g.abs_move(anchor[0], anchor[1], A=anchor_z + heaven)
+                    g.abs_move(anchor[0], anchor[1], A=anchor_z)
                     #g.clip('A', '-x', -heaven)
-                    g.move(A=-heaven)
+                    #g.move(A=-heaven)
                     g.set_valve(0, 1)
                     g.abs_move(#direction='CCW', #radius=r,
                               x=target[0], y=target[1], A=target_z)
-                    g.set_valve(0, 0)
+                    #g.set_valve(0, 0)
                     #g.clip('A', '+x', heaven)
-                    g.move(A=heaven)
+                    #g.move(A=heaven)
                 else:
-                    g.abs_move(target[0], target[1], A=target_z + heaven)
+                    g.abs_move(target[0], target[1], A=target_z)
                     #g.clip('A', '+x', -heaven)
-                    g.move(A=-heaven)
+                    #g.move(A=-heaven)
                     g.set_valve(0, 1)
                     g.abs_move(#direction='CW', #radius=r,
                               x=anchor[0], y=anchor[1], A=anchor_z)
-                    g.set_valve(0, 0)
+                    #g.set_valve(0, 0)
                     #g.clip('A', '-x', heaven)
-                    g.move(A=heaven)
+                    #g.move(A=heaven)
                 tic *= -1
+        g.set_valve(0, 0)
 
     def draw_bundles_right(self):
         targets = self.get_targets_y_spaced()
@@ -132,26 +133,27 @@ class HeartValveModel(object):
                 anchor_z = self.z_heights[anchor_idx]
                 self.z_heights[anchor_idx] += z
                 if tic == 1:
-                    g.abs_move(anchor[0], anchor[1], A=anchor_z + heaven)
+                    g.abs_move(anchor[0], anchor[1], A=anchor_z)
                     #g.clip('A', '+x', -heaven)
-                    g.move(A=-heaven)
+                    #g.move(A=-heaven)
                     g.set_valve(0, 1)
                     g.abs_move(#direction='CW', #radius=r,
                               x=target[0], y=target[1], A=target_z)
-                    g.set_valve(0, 0)
+                    #g.set_valve(0, 0)
                     #g.clip('A', '-x', heaven)
-                    g.move(A=heaven)
+                    #g.move(A=heaven)
                 else:
-                    g.abs_move(target[0], target[1], A=target_z + heaven)
+                    g.abs_move(target[0], target[1], A=target_z)
                     #g.clip('A', '-x', -heaven)
-                    g.move(A=-heaven)
+                    #g.move(A=-heaven)
                     g.set_valve(0, 1)
                     g.abs_move(#direction='CCW', #radius=r,
                               x=anchor[0], y=anchor[1], A=anchor_z)
-                    g.set_valve(0, 0)
+                    #g.set_valve(0, 0)
                     #g.clip('A', '+x', heaven)
-                    g.move(A=heaven)
+                    #g.move(A=heaven)
                 tic *= -1
+        g.set_valve(0, 0)
 
     def draw_linear(self, z=0):
         targets = self.get_targets_y_spaced()
@@ -221,17 +223,16 @@ if __name__ == '__main__':
         line_spacing=0.05,
         diameter=25,
         layer_thicknes=0.030,
-        start=(397.976, 61.4568),
+        start=(392.248, 55.799),
     )
     g.setup()
-    abs_0 = 50.5
-    g.feed(20)
+    abs_0 = 49.9253
     g.abs_move(A=-5)
     g.set_home(A=abs_0 - 5)
     g.set_valve(0, 0)
     g.set_pressure(4, 15)
     g.toggle_pressure(4)
-    g.feed(4)
+    g.feed(1.2)
 
     valve.draw_layers('bundles', 4)
 
