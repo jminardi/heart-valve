@@ -14,7 +14,7 @@ class HeartValveModel(object):
 
     def __init__(self, diameter=25, line_spacing=0.1, start=(0, 0),
                  num_anchors=8, anchor_width=10, heaven=2, layer_thicknes=.15,
-                 arc_radius=100):
+                 arc_radius=100, z_dim='z', stamp_time=0.2):
         """
         Parameters
         ----------
@@ -43,10 +43,12 @@ class HeartValveModel(object):
         self.heaven = heaven
         self.layer_thicknes = layer_thicknes
         self.arc_radius = arc_radius
+        self.stamp_time = stamp_time
 
         self.circum = np.pi * diameter
         self.z_heights = (np.zeros(len(self.get_targets_y_spaced())) +
                           (0.77 * layer_thicknes))
+        self.z_dim = z_dim
 
     def get_targets_y_spaced(self):
         a, b = self.start
@@ -74,6 +76,7 @@ class HeartValveModel(object):
         z = self.layer_thicknes
         heaven = self.heaven
         tic = 1
+        z_dim = self.z_dim
         for i in range(self.num_anchors / 2):
             for j in range(len(right_targets) / num_left_anchors):
                 offset = (j % self.anchor_width) - (self.anchor_width / 2)
@@ -88,27 +91,35 @@ class HeartValveModel(object):
                 anchor_z = self.z_heights[anchor_idx]
                 self.z_heights[anchor_idx] += z
                 if tic == 1:
-                    g.abs_move(anchor[0], anchor[1], A=anchor_z)
+                    g.abs_move(anchor[0], anchor[1], **{z_dim: anchor_z})
+                    g.dwell(self.stamp_time)
                     #g.clip('A', '-x', -heaven)
                     #g.move(A=-heaven)
-                    g.set_valve(0, 1)
+                    g.dwell(self.stamp_time)
                     g.abs_move(#direction='CCW', #radius=r,
-                              x=target[0], y=target[1], A=target_z)
+                               x=target[0], y=target[1],
+                               **{z_dim: target_z + heaven})
+                    g.abs_move(**{z_dim: target_z})
+                    g.dwell(self.stamp_time)
                     #g.set_valve(0, 0)
                     #g.clip('A', '+x', heaven)
                     #g.move(A=heaven)
                 else:
-                    g.abs_move(target[0], target[1], A=target_z)
+                    g.abs_move(target[0], target[1], **{z_dim: target_z})
+                    g.dwell(self.stamp_time)
                     #g.clip('A', '+x', -heaven)
                     #g.move(A=-heaven)
                     g.set_valve(0, 1)
                     g.abs_move(#direction='CW', #radius=r,
-                              x=anchor[0], y=anchor[1], A=anchor_z)
+                               x=anchor[0], y=anchor[1],
+                               **{z_dim: anchor_z + heaven})
+                    g.abs_move(**{z_dim: anchor_z})
+                    g.set_valve(0, 1)
                     #g.set_valve(0, 0)
                     #g.clip('A', '-x', heaven)
                     #g.move(A=heaven)
                 tic *= -1
-        g.set_valve(0, 0)
+            g.set_valve(0, 0)
 
     def draw_bundles_right(self):
         targets = self.get_targets_y_spaced()
@@ -118,6 +129,7 @@ class HeartValveModel(object):
         r = self.arc_radius
         z = self.layer_thicknes
         heaven = self.heaven
+        z_dim = self.z_dim
         tic = 1
         for i in range(self.num_anchors / 2):
             for j in range(len(left_targets) / num_right_anchors):
@@ -133,27 +145,31 @@ class HeartValveModel(object):
                 anchor_z = self.z_heights[anchor_idx]
                 self.z_heights[anchor_idx] += z
                 if tic == 1:
-                    g.abs_move(anchor[0], anchor[1], A=anchor_z)
+                    g.abs_move(anchor[0], anchor[1], **{z_dim: anchor_z})
                     #g.clip('A', '+x', -heaven)
                     #g.move(A=-heaven)
                     g.set_valve(0, 1)
                     g.abs_move(#direction='CW', #radius=r,
-                              x=target[0], y=target[1], A=target_z)
+                               x=target[0], y=target[1] ,
+                               **{z_dim: target_z + heaven})
+                    g.abs_move(A=target_z)
                     #g.set_valve(0, 0)
                     #g.clip('A', '-x', heaven)
                     #g.move(A=heaven)
                 else:
-                    g.abs_move(target[0], target[1], A=target_z)
+                    g.abs_move(target[0], target[1], **{z_dim: target_z})
                     #g.clip('A', '-x', -heaven)
                     #g.move(A=-heaven)
                     g.set_valve(0, 1)
                     g.abs_move(#direction='CCW', #radius=r,
-                              x=anchor[0], y=anchor[1], A=anchor_z)
+                               x=anchor[0], y=anchor[1],
+                               **{z_dim: anchor_z + heaven})
+                    g.abs_move(A=anchor_z)
                     #g.set_valve(0, 0)
                     #g.clip('A', '+x', heaven)
                     #g.move(A=heaven)
                 tic *= -1
-        g.set_valve(0, 0)
+            g.set_valve(0, 0)
 
     def draw_linear(self, z=0):
         targets = self.get_targets_y_spaced()
