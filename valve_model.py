@@ -14,7 +14,7 @@ class HeartValveModel(object):
 
     def __init__(self, diameter=25, line_spacing=0.1, start=(0, 0),
                  num_anchors=8, anchor_width=10, heaven=2, layer_thicknes=.15,
-                 arc_radius=100, z_dim='z', stamp_time=0.2):
+                 arc_radius=100, z_dim='z', stamp_time=0.5):
         """
         Parameters
         ----------
@@ -47,7 +47,7 @@ class HeartValveModel(object):
 
         self.circum = np.pi * diameter
         self.z_heights = (np.zeros(len(self.get_targets_y_spaced())) +
-                          (0.77 * layer_thicknes))
+                          (0.60 * layer_thicknes))
         self.z_dim = z_dim
 
     def get_targets_y_spaced(self):
@@ -91,22 +91,26 @@ class HeartValveModel(object):
                 anchor_z = self.z_heights[anchor_idx]
                 self.z_heights[anchor_idx] += z
                 if tic == 1:
-                    g.abs_move(anchor[0], anchor[1], **{z_dim: anchor_z})
+                    g.abs_move(anchor[0], anchor[1],
+                            **{z_dim: anchor_z + heaven})
+                    g.abs_move(**{z_dim: anchor_z})
                     g.dwell(self.stamp_time)
+                    g.move(**{z_dim: heaven})
                     #g.clip('A', '-x', -heaven)
                     #g.move(A=-heaven)
-                    g.dwell(self.stamp_time)
                     g.abs_move(#direction='CCW', #radius=r,
                                x=target[0], y=target[1],
                                **{z_dim: target_z + heaven})
                     g.abs_move(**{z_dim: target_z})
                     g.dwell(self.stamp_time)
+                    g.move(**{z_dim: heaven})
                     #g.set_valve(0, 0)
                     #g.clip('A', '+x', heaven)
                     #g.move(A=heaven)
                 else:
                     g.abs_move(target[0], target[1], **{z_dim: target_z})
                     g.dwell(self.stamp_time)
+                    g.move(**{z_dim: heaven})
                     #g.clip('A', '+x', -heaven)
                     #g.move(A=-heaven)
                     g.set_valve(0, 1)
@@ -114,6 +118,8 @@ class HeartValveModel(object):
                                x=anchor[0], y=anchor[1],
                                **{z_dim: anchor_z + heaven})
                     g.abs_move(**{z_dim: anchor_z})
+                    g.dwell(self.stamp_time)
+                    g.move(**{z_dim: heaven})
                     g.set_valve(0, 1)
                     #g.set_valve(0, 0)
                     #g.clip('A', '-x', heaven)
@@ -145,26 +151,38 @@ class HeartValveModel(object):
                 anchor_z = self.z_heights[anchor_idx]
                 self.z_heights[anchor_idx] += z
                 if tic == 1:
-                    g.abs_move(anchor[0], anchor[1], **{z_dim: anchor_z})
+                    g.abs_move(anchor[0], anchor[1],
+                               **{z_dim: anchor_z + heaven})
+                    g.abs_move(**{z_dim: anchor_z})
+                    g.dwell(self.stamp_time)
+                    g.move(**{z_dim: heaven})
                     #g.clip('A', '+x', -heaven)
                     #g.move(A=-heaven)
                     g.set_valve(0, 1)
                     g.abs_move(#direction='CW', #radius=r,
                                x=target[0], y=target[1] ,
                                **{z_dim: target_z + heaven})
-                    g.abs_move(A=target_z)
+                    g.abs_move(**{z_dim: target_z})
+                    g.dwell(self.stamp_time)
+                    g.move(**{z_dim: heaven})
                     #g.set_valve(0, 0)
                     #g.clip('A', '-x', heaven)
                     #g.move(A=heaven)
                 else:
-                    g.abs_move(target[0], target[1], **{z_dim: target_z})
+                    g.abs_move(target[0], target[1],
+                               **{z_dim: target_z + heaven})
+                    g.abs_move(**{z_dim: target_z})
+                    g.dwell(self.stamp_time)
+                    g.move(**{z_dim: heaven})
                     #g.clip('A', '-x', -heaven)
                     #g.move(A=-heaven)
                     g.set_valve(0, 1)
                     g.abs_move(#direction='CCW', #radius=r,
                                x=anchor[0], y=anchor[1],
                                **{z_dim: anchor_z + heaven})
-                    g.abs_move(A=anchor_z)
+                    g.abs_move(**{z_dim: anchor_z})
+                    g.dwell(self.stamp_time)
+                    g.move(**{z_dim: heaven})
                     #g.set_valve(0, 0)
                     #g.clip('A', '+x', heaven)
                     #g.move(A=heaven)
@@ -231,26 +249,35 @@ class HeartValveModel(object):
 
 
 if __name__ == '__main__':
+    cal_data = np.array([[395, 128, 0], [395, 65, 0], [476, 65, -0.030], [476, 128, -0.030]])
     g = MeCode(
         outfile=r"C:\Users\Lewis Group\Documents\GitHub\heart-valve\out.pgm",
-        print_lines=False
+        print_lines=False,
+        cal_data=cal_data
     )
     valve = HeartValveModel(
+        z_dim='A',
         line_spacing=0.04,
         diameter=25,
         layer_thicknes=0.008,
-        start=(442.95, 91.05),
+        start=(444.69, 95.645),
+        stamp_time=0.8,
+        heaven=1,
     )
     g.setup()
-    abs_0 = 50.5317
+    abs_0 = 51.12955 + (0.003833*2)
     g.feed(20)
     g.abs_move(A=-45)
     g.set_home(A=abs_0 - 45)
     g.set_valve(0, 0)
-    g.set_pressure(4, 35)
+    g.set_pressure(4, 44)
     g.toggle_pressure(4)
-    g.feed(3)
+    g.feed(5)
 
+    g.set_valve(0, 1)
+    x, y = valve.get_targets_y_spaced()[valve.get_anchor_idxs()[0]]
+    g.abs_move(x - 5, y, A=valve.z_heights[0])
+    g.move(5)
     valve.draw_layers('bundles', 4)
 
     g.toggle_pressure(4)
