@@ -137,7 +137,8 @@ class HeartValveModel(object):
 
         g.abs_move(from_[0] - rway, from_[1], **{z_dim: from_[2] + heaven})
         g.move(**{z_dim: -heaven})
-        g.set_valve(0, 1)
+        g.set_pressure(4, 10)
+        #g.set_valve(0, 1)
         g.move(rway)
         g.dwell(self.stamp_time)
         g.move(**{z_dim: heaven})
@@ -145,7 +146,8 @@ class HeartValveModel(object):
         g.move(**{z_dim: -heaven})
         g.dwell(self.stamp_time)
         g.move(rway / 2.0)
-        g.set_valve(0, 0)
+        #g.set_valve(0, 0)
+        g.set_pressure(4, 5)
         g.move(rway / 2.0)
         g.move(**{z_dim: heaven})
 
@@ -210,20 +212,20 @@ class HeartValveModel(object):
 
 if __name__ == '__main__':
     g = MeCode(
-        #outfile=r"C:\Users\Lewis Group\Documents\GitHub\heart-valve\out.pgm",
-        outfile=r'/Users/jack/Desktop/test.gcode',
+        outfile=r"C:\Users\Lewis Group\Documents\GitHub\heart-valve\out.pgm",
+        #outfile=r'/Users/jack/Desktop/test.gcode',
         print_lines=False,
     )
     valve = HeartValveModel(
-        #z_dim='A',
+        z_dim='A',
         line_spacing=0.03,
         diameter=25,
         layer_thicknes=0.025,
-        #start=(413.5444, 23.3106),
-        stamp_time=0.4,
+        start=(433.673, 78.092),
+        stamp_time=0.2,
         heaven=1,
     )
-    abs_0 = 68.946692
+    abs_0 = 68.998397
     g.setup()
     g.feed(20)
     g.abs_move(A=-45)
