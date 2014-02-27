@@ -249,35 +249,34 @@ class HeartValveModel(object):
 
 
 if __name__ == '__main__':
-    #cal_data = np.array([[395, 128, 0], [395, 65, 0], [476, 65, -0.030], [476, 128, -0.030]])
     g = MeCode(
-        #outfile=r"C:\Users\Lewis Group\Documents\GitHub\heart-valve\out.pgm",
-        outfile=r'/Users/jack/Desktop/out.gcode',
+        outfile=r"C:\Users\Lewis Group\Documents\GitHub\heart-valve\out.pgm",
+        #outfile=r'/Users/jack/Desktop/out.gcode',
         print_lines=False,
-        #cal_data=cal_data
     )
     valve = HeartValveModel(
-        z_dim='z',
-        line_spacing=0.04,
+        z_dim='A',
+        line_spacing=0.03,
         diameter=25,
-        layer_thicknes=0.008,
-        #start=(444.69, 95.645),
-        stamp_time=0.8,
+        layer_thicknes=0.025,
+        start=(413.5444, 23.3106),
+        stamp_time=0.4,
         heaven=1,
     )
     g.setup()
-    abs_0 = 51.12955 + (0.003833*2)
+    abs_0 = 68.946692
     g.feed(20)
     g.abs_move(A=-45)
     g.set_home(A=abs_0 - 45)
     g.set_valve(0, 0)
-    g.set_pressure(4, 44)
+    g.set_pressure(4, 10)
     g.toggle_pressure(4)
-    g.feed(5)
-
-    g.set_valve(0, 1)
     x, y = valve.get_targets_y_spaced()[valve.get_anchor_idxs()[0]]
-    g.abs_move(x - 5, y, A=valve.z_heights[0])
+    g.abs_move(x - 5, y, A=valve.z_heights[0] + valve.heaven)
+
+    g.feed(.4)
+    g.move(A=-valve.heaven)
+    g.set_valve(0, 1)
     g.move(5)
     valve.draw_layers('bundles', 1)
 
