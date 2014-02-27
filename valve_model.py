@@ -14,7 +14,7 @@ class HeartValveModel(object):
 
     def __init__(self, diameter=25, line_spacing=0.1, start=(0, 0),
                  num_anchors=8, anchor_width=10, heaven=2, layer_thicknes=.15,
-                 arc_radius=100, z_dim='z', stamp_time=0.5):
+                 arc_radius=100, z_dim='z', stamp_time=0.5, runway=3):
         """
         Parameters
         ----------
@@ -34,6 +34,8 @@ class HeartValveModel(object):
             Height to raise in Z between layers.
         arc_radius : float
             Radius of the connecting arcs.
+        runway : float
+            Length in mm of the extra legs used to ensure stick.
         """
         self.diameter = diameter
         self.line_spacing = line_spacing
@@ -44,6 +46,7 @@ class HeartValveModel(object):
         self.layer_thicknes = layer_thicknes
         self.arc_radius = arc_radius
         self.stamp_time = stamp_time
+        self.runway = runway
 
         self.circum = np.pi * diameter
         self.z_heights = (np.zeros(len(self.get_targets_y_spaced())) +
@@ -72,11 +75,8 @@ class HeartValveModel(object):
         right_targets = targets[len(targets) / 2:]
         num_left_anchors = self.num_anchors / 2
         anchor_idxs = self.get_anchor_idxs()
-        r = self.arc_radius
         z = self.layer_thicknes
-        heaven = self.heaven
         tic = 1
-        z_dim = self.z_dim
         for i in range(self.num_anchors / 2):
             for j in range(len(right_targets) / num_left_anchors):
                 offset = (j % self.anchor_width) - (self.anchor_width / 2)
@@ -87,43 +87,15 @@ class HeartValveModel(object):
                 target = targets[target_idx]
                 anchor = targets[anchor_idx]
                 target_z = self.z_heights[target_idx]
-                self.z_heights[target_idx] += z
                 anchor_z = self.z_heights[anchor_idx]
+                target = target[0], target[1], target_z
+                anchor = anchor[0], anchor[1], anchor_z
+                self.z_heights[target_idx] += z
                 self.z_heights[anchor_idx] += z
                 if tic == 1:
-                    g.abs_move(anchor[0], anchor[1],
-                            **{z_dim: anchor_z + heaven})
-                    g.abs_move(**{z_dim: anchor_z})
-                    g.dwell(self.stamp_time)
-                    g.move(**{z_dim: heaven})
-                    #g.clip('A', '-x', -heaven)
-                    #g.move(A=-heaven)
-                    g.abs_move(#direction='CCW', #radius=r,
-                               x=target[0], y=target[1],
-                               **{z_dim: target_z + heaven})
-                    g.abs_move(**{z_dim: target_z})
-                    g.dwell(self.stamp_time)
-                    g.move(**{z_dim: heaven})
-                    #g.set_valve(0, 0)
-                    #g.clip('A', '+x', heaven)
-                    #g.move(A=heaven)
+                    self.dance(anchor, target)
                 else:
-                    g.abs_move(target[0], target[1], **{z_dim: target_z})
-                    g.dwell(self.stamp_time)
-                    g.move(**{z_dim: heaven})
-                    #g.clip('A', '+x', -heaven)
-                    #g.move(A=-heaven)
-                    g.set_valve(0, 1)
-                    g.abs_move(#direction='CW', #radius=r,
-                               x=anchor[0], y=anchor[1],
-                               **{z_dim: anchor_z + heaven})
-                    g.abs_move(**{z_dim: anchor_z})
-                    g.dwell(self.stamp_time)
-                    g.move(**{z_dim: heaven})
-                    g.set_valve(0, 1)
-                    #g.set_valve(0, 0)
-                    #g.clip('A', '-x', heaven)
-                    #g.move(A=heaven)
+                    self.dance(target, anchor)
                 tic *= -1
             g.set_valve(0, 0)
 
@@ -132,10 +104,7 @@ class HeartValveModel(object):
         left_targets = targets[:len(targets) / 2]
         num_right_anchors = self.num_anchors / 2
         anchor_idxs = self.get_anchor_idxs()
-        r = self.arc_radius
         z = self.layer_thicknes
-        heaven = self.heaven
-        z_dim = self.z_dim
         tic = 1
         for i in range(self.num_anchors / 2):
             for j in range(len(left_targets) / num_right_anchors):
@@ -147,47 +116,38 @@ class HeartValveModel(object):
                 target = targets[target_idx]
                 anchor = targets[anchor_idx]
                 target_z = self.z_heights[target_idx]
-                self.z_heights[target_idx] += z
                 anchor_z = self.z_heights[anchor_idx]
+                target = target[0], target[1], target_z
+                anchor = anchor[0], anchor[1], anchor_z
+                self.z_heights[target_idx] += z
                 self.z_heights[anchor_idx] += z
                 if tic == 1:
-                    g.abs_move(anchor[0], anchor[1],
-                               **{z_dim: anchor_z + heaven})
-                    g.abs_move(**{z_dim: anchor_z})
-                    g.dwell(self.stamp_time)
-                    g.move(**{z_dim: heaven})
-                    #g.clip('A', '+x', -heaven)
-                    #g.move(A=-heaven)
-                    g.set_valve(0, 1)
-                    g.abs_move(#direction='CW', #radius=r,
-                               x=target[0], y=target[1] ,
-                               **{z_dim: target_z + heaven})
-                    g.abs_move(**{z_dim: target_z})
-                    g.dwell(self.stamp_time)
-                    g.move(**{z_dim: heaven})
-                    #g.set_valve(0, 0)
-                    #g.clip('A', '-x', heaven)
-                    #g.move(A=heaven)
+                    self.dance(anchor, target)
                 else:
-                    g.abs_move(target[0], target[1],
-                               **{z_dim: target_z + heaven})
-                    g.abs_move(**{z_dim: target_z})
-                    g.dwell(self.stamp_time)
-                    g.move(**{z_dim: heaven})
-                    #g.clip('A', '-x', -heaven)
-                    #g.move(A=-heaven)
-                    g.set_valve(0, 1)
-                    g.abs_move(#direction='CCW', #radius=r,
-                               x=anchor[0], y=anchor[1],
-                               **{z_dim: anchor_z + heaven})
-                    g.abs_move(**{z_dim: anchor_z})
-                    g.dwell(self.stamp_time)
-                    g.move(**{z_dim: heaven})
-                    #g.set_valve(0, 0)
-                    #g.clip('A', '+x', heaven)
-                    #g.move(A=heaven)
+                    self.dance(target, anchor)
                 tic *= -1
             g.set_valve(0, 0)
+
+    def dance(self, from_, to, woo=False):
+        """ Perform the ritual dance to appease the pHEMA gods.
+        """
+        z_dim = self.z_dim
+        heaven = self.heaven
+        rway = self.runway if to[0] > from_[0] else -self.runway
+
+        g.abs_move(from_[0] - rway, from_[1], **{z_dim: from_[2] + heaven})
+        g.move(**{z_dim: -heaven})
+        g.set_valve(0, 1)
+        g.move(rway)
+        g.dwell(self.stamp_time)
+        g.move(**{z_dim: heaven})
+        g.abs_move(x=to[0], y=to[1], **{z_dim: to[2] + heaven})
+        g.move(**{z_dim: -heaven})
+        g.dwell(self.stamp_time)
+        g.move(rway / 2.0)
+        g.set_valve(0, 0)
+        g.move(rway / 2.0)
+        g.move(**{z_dim: heaven})
 
     def draw_linear(self, z=0):
         targets = self.get_targets_y_spaced()
@@ -250,34 +210,31 @@ class HeartValveModel(object):
 
 if __name__ == '__main__':
     g = MeCode(
-        outfile=r"C:\Users\Lewis Group\Documents\GitHub\heart-valve\out.pgm",
-        #outfile=r'/Users/jack/Desktop/out.gcode',
+        #outfile=r"C:\Users\Lewis Group\Documents\GitHub\heart-valve\out.pgm",
+        outfile=r'/Users/jack/Desktop/test.gcode',
         print_lines=False,
     )
     valve = HeartValveModel(
-        z_dim='A',
+        #z_dim='A',
         line_spacing=0.03,
         diameter=25,
         layer_thicknes=0.025,
-        start=(413.5444, 23.3106),
+        #start=(413.5444, 23.3106),
         stamp_time=0.4,
         heaven=1,
     )
-    g.setup()
     abs_0 = 68.946692
+    g.setup()
     g.feed(20)
     g.abs_move(A=-45)
     g.set_home(A=abs_0 - 45)
-    g.set_valve(0, 0)
     g.set_pressure(4, 10)
     g.toggle_pressure(4)
+
     x, y = valve.get_targets_y_spaced()[valve.get_anchor_idxs()[0]]
-    g.abs_move(x - 5, y, A=valve.z_heights[0] + valve.heaven)
+    g.abs_move(x, y, **{valve.z_dim: valve.heaven * 2})
 
     g.feed(.4)
-    g.move(A=-valve.heaven)
-    g.set_valve(0, 1)
-    g.move(5)
     valve.draw_layers('bundles', 1)
 
     g.toggle_pressure(4)
