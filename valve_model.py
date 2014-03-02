@@ -138,7 +138,7 @@ class HeartValveModel(object):
         g.abs_move(from_[0] - rway, from_[1], **{z_dim: from_[2] + heaven})
         g.move(**{z_dim: -heaven})
         g.set_pressure(4, 10)
-        #g.set_valve(0, 1)
+        g.set_valve(0, 1)
         g.move(rway)
         g.dwell(self.stamp_time)
         g.move(**{z_dim: heaven})
@@ -221,11 +221,11 @@ if __name__ == '__main__':
         line_spacing=0.03,
         diameter=25,
         layer_thicknes=0.025,
-        start=(433.673, 78.092),
+        start=(367.056, 28.042),
         stamp_time=0.2,
         heaven=1,
     )
-    abs_0 = 68.998397
+    abs_0 = 69.150995
     g.setup()
     g.feed(20)
     g.abs_move(A=-45)
