@@ -128,7 +128,7 @@ class HeartValveModel(object):
                 tic *= -1
             g.set_valve(0, 0)
 
-    def dance(self, from_, to, woo=False):
+    def dance(self, from_, to):
         """ Perform the ritual dance to appease the pHEMA gods.
         """
         z_dim = self.z_dim
@@ -137,7 +137,7 @@ class HeartValveModel(object):
 
         g.abs_move(from_[0] - rway, from_[1], **{z_dim: from_[2] + heaven})
         g.move(**{z_dim: -heaven})
-        g.set_pressure(4, 10)
+        g.set_pressure(4, 3)
         g.set_valve(0, 1)
         g.move(rway)
         g.dwell(self.stamp_time)
@@ -147,7 +147,7 @@ class HeartValveModel(object):
         g.dwell(self.stamp_time)
         g.move(rway / 2.0)
         #g.set_valve(0, 0)
-        g.set_pressure(4, 5)
+        g.set_pressure(4, 0.5)
         g.move(rway / 2.0)
         g.move(**{z_dim: heaven})
 
@@ -221,23 +221,27 @@ if __name__ == '__main__':
         line_spacing=0.03,
         diameter=25,
         layer_thicknes=0.025,
-        start=(367.056, 28.042),
+        start=(434.557, 79.553),
         stamp_time=0.2,
         heaven=1,
     )
-    abs_0 = 69.150995
+    abs_0 = 49.834854 + .28
     g.setup()
     g.feed(20)
     g.abs_move(A=-45)
     g.set_home(A=abs_0 - 45)
-    g.set_pressure(4, 10)
+    g.set_pressure(4, 3)
     g.toggle_pressure(4)
 
     x, y = valve.get_targets_y_spaced()[valve.get_anchor_idxs()[0]]
     g.abs_move(x, y, **{valve.z_dim: valve.heaven * 2})
 
-    g.feed(.4)
-    valve.draw_layers('bundles', 1)
-
+    g.feed(4.5)
+    valve.draw_layers('bundles', 6)
+    g.set_valve(0, 0)
+    g.set_pressure(4, 0)
+    g.move(X=50, Y=50, A=30)
+    
+    
     g.toggle_pressure(4)
     g.teardown()
