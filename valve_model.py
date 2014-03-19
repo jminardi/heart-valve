@@ -5,16 +5,18 @@ Author: Jack Minardi
 Email: jminardi@seas.harvard.edu
 
 """
+import math
 import numpy as np
 
-from mecode import MeCode
+from mecode import G
 
 
 class HeartValveModel(object):
 
     def __init__(self, diameter=25, line_spacing=0.1, start=(0, 0),
-                 num_anchors=8, anchor_width=10, heaven=2, layer_thicknes=.15,
-                 arc_radius=100, z_dim='z', stamp_time=0.5, runway=3):
+                 num_anchors=8, anchor_width=10, heaven=2, layer_thickness=.15,
+                 arc_radius=100, z_dim='z', stamp_time=0.5, runway=3,
+                 ground_speed=0.5, air_speed=1):
         """
         Parameters
         ----------
@@ -30,7 +32,7 @@ class HeartValveModel(object):
             Width of the bundle base in multiples of the line_spacing.
         heaven : float
             Safe height to raise to to clear all features.
-        layer_thicknes : float
+        layer_thickness : float
             Height to raise in Z between layers.
         arc_radius : float
             Radius of the connecting arcs.
@@ -43,14 +45,16 @@ class HeartValveModel(object):
         self.num_anchors = num_anchors
         self.anchor_width = anchor_width
         self.heaven = heaven
-        self.layer_thicknes = layer_thicknes
+        self.layer_thickness = layer_thickness
         self.arc_radius = arc_radius
         self.stamp_time = stamp_time
         self.runway = runway
+        self.ground_speed = ground_speed
+        self.air_speed = air_speed
 
         self.circum = np.pi * diameter
         self.z_heights = (np.zeros(len(self.get_targets_y_spaced())) +
-                          (0.60 * layer_thicknes))
+                          (0.60 * layer_thickness))
         self.z_dim = z_dim
 
     def get_targets_y_spaced(self):
@@ -75,7 +79,7 @@ class HeartValveModel(object):
         right_targets = targets[len(targets) / 2:]
         num_left_anchors = self.num_anchors / 2
         anchor_idxs = self.get_anchor_idxs()
-        z = self.layer_thicknes
+        z = self.layer_thickness
         tic = 1
         for i in range(self.num_anchors / 2):
             for j in range(len(right_targets) / num_left_anchors):
@@ -104,7 +108,7 @@ class HeartValveModel(object):
         left_targets = targets[:len(targets) / 2]
         num_right_anchors = self.num_anchors / 2
         anchor_idxs = self.get_anchor_idxs()
-        z = self.layer_thicknes
+        z = self.layer_thickness
         tic = 1
         for i in range(self.num_anchors / 2):
             for j in range(len(left_targets) / num_right_anchors):
@@ -128,28 +132,41 @@ class HeartValveModel(object):
                 tic *= -1
             g.set_valve(0, 0)
 
-    def dance(self, from_, to):
+    def dance(self, fro, to):
         """ Perform the ritual dance to appease the pHEMA gods.
         """
+        to, fro = list(to), list(fro)
         z_dim = self.z_dim
         heaven = self.heaven
-        rway = self.runway if to[0] > from_[0] else -self.runway
+        rway = self.runway if to[0] > fro[0] else -self.runway
+        gnd_spd = self.ground_speed
+        air_spd = self.air_speed
+        
+        fro_level = math.floor(fro[2] / self.layer_thickness)
+        to_level = math.floor(to[2] / self.layer_thickness)
+        fro[0] -= fro_level * rway
+        to[0] += to_level * rway
+        to[2], fro[2] = (0.6 * self.layer_thickness, 0.6 * self.layer_thickness)
 
-        g.abs_move(from_[0] - rway, from_[1], **{z_dim: from_[2] + heaven})
+        g.abs_move(fro[0] - rway, fro[1], **{z_dim: fro[2] + heaven})
         g.move(**{z_dim: -heaven})
-        g.set_pressure(4, 3)
+
         g.set_valve(0, 1)
+        g.feed(gnd_spd)
         g.move(rway)
         g.dwell(self.stamp_time)
+        
         g.move(**{z_dim: heaven})
+        g.feed(air_spd)
         g.abs_move(x=to[0], y=to[1], **{z_dim: to[2] + heaven})
+        
         g.move(**{z_dim: -heaven})
+        g.feed(gnd_spd)
+        g.move(rway)
+        g.set_valve(0, 0)
         g.dwell(self.stamp_time)
-        g.move(rway / 2.0)
-        #g.set_valve(0, 0)
-        g.set_pressure(4, 0.5)
-        g.move(rway / 2.0)
         g.move(**{z_dim: heaven})
+        g.feed(air_spd)
 
     def draw_linear(self, z=0):
         targets = self.get_targets_y_spaced()
@@ -205,39 +222,40 @@ class HeartValveModel(object):
                 else:
                     self.draw_bundles_right()
             return
-        height = self.layer_thicknes
+        height = self.layer_thickness
         for z_height in np.arange(height, height * (num + 1), height):
             draw(z=z_height)
 
 
 if __name__ == '__main__':
-    g = MeCode(
+    g = G(
         outfile=r"C:\Users\Lewis Group\Documents\GitHub\heart-valve\out.pgm",
         #outfile=r'/Users/jack/Desktop/test.gcode',
         print_lines=False,
     )
     valve = HeartValveModel(
-        z_dim='A',
+        #z_dim='A',
         line_spacing=0.03,
         diameter=25,
-        layer_thicknes=0.025,
-        start=(434.557, 79.553),
-        stamp_time=0.2,
+        layer_thickness=0.008,
+        #start=(438.649, 105.285),
+        stamp_time=0,
         heaven=1,
+        runway=0.7,
     )
-    abs_0 = 49.834854 + .28
+    abs_0 = 50.075830
     g.setup()
     g.feed(20)
     g.abs_move(A=-45)
     g.set_home(A=abs_0 - 45)
-    g.set_pressure(4, 3)
+    g.set_pressure(4, 60)
     g.toggle_pressure(4)
 
     x, y = valve.get_targets_y_spaced()[valve.get_anchor_idxs()[0]]
     g.abs_move(x, y, **{valve.z_dim: valve.heaven * 2})
 
     g.feed(4.5)
-    valve.draw_layers('bundles', 6)
+    valve.draw_layers('bundles', 1)
     g.set_valve(0, 0)
     g.set_pressure(4, 0)
     g.move(X=50, Y=50, A=30)
