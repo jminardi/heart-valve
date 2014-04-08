@@ -234,21 +234,21 @@ if __name__ == '__main__':
         print_lines=False,
     )
     valve = HeartValveModel(
-        #z_dim='A',
+        z_dim='A',
         line_spacing=0.03,
         diameter=25,
         layer_thickness=0.008,
-        #start=(438.649, 105.285),
-        stamp_time=0,
-        heaven=1,
+        start=(418.88, 109.08),
+        stamp_time=0.1,
+        heaven=0.2,
         runway=0.7,
     )
-    abs_0 = 50.075830
-    g.setup()
+    abs_0 = 50.475739
+    #g.setup()
     g.feed(20)
     g.abs_move(A=-45)
     g.set_home(A=abs_0 - 45)
-    g.set_pressure(4, 60)
+    g.set_pressure(4, 50)
     g.toggle_pressure(4)
 
     x, y = valve.get_targets_y_spaced()[valve.get_anchor_idxs()[0]]
