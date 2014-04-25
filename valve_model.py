@@ -238,23 +238,23 @@ if __name__ == '__main__':
         line_spacing=0.03,
         diameter=25,
         layer_thickness=0.008,
-        start=(418.88, 109.08),
+        start=(409.492, 93.182),
         stamp_time=0.1,
         heaven=0.2,
         runway=0.7,
     )
-    abs_0 = 50.475739
+    abs_0 = 49.216212
     #g.setup()
     g.feed(20)
     g.abs_move(A=-45)
     g.set_home(A=abs_0 - 45)
-    g.set_pressure(4, 50)
+    g.set_pressure(4, 5)
     g.toggle_pressure(4)
 
     x, y = valve.get_targets_y_spaced()[valve.get_anchor_idxs()[0]]
     g.abs_move(x, y, **{valve.z_dim: valve.heaven * 2})
 
-    g.feed(4.5)
+    g.feed(6)
     valve.draw_layers('bundles', 1)
     g.set_valve(0, 0)
     g.set_pressure(4, 0)
