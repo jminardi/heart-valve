@@ -237,18 +237,21 @@ if __name__ == '__main__':
         z_dim='A',
         line_spacing=0.03,
         diameter=25,
-        layer_thickness=0.008,
-        start=(409.492, 93.182),
+        layer_thickness=0.007,
+        start=(391.028, 16.094),
         stamp_time=0.1,
-        heaven=0.2,
+        heaven=0.15,
         runway=0.7,
+        ground_speed=2,
+        air_speed=8,
     )
-    abs_0 = 49.216212
-    #g.setup()
+    abs_0 = 49.08310
+    setpt = abs_0 - 4
+
     g.feed(20)
-    g.abs_move(A=-45)
-    g.set_home(A=abs_0 - 45)
-    g.set_pressure(4, 5)
+    g.abs_move(A=-setpt)
+    g.set_home(A=abs_0 - setpt)
+    g.set_pressure(4, 30)
     g.toggle_pressure(4)
 
     x, y = valve.get_targets_y_spaced()[valve.get_anchor_idxs()[0]]
