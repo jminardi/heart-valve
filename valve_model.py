@@ -57,6 +57,9 @@ class HeartValveModel(object):
                           (0.60 * layer_thickness))
         self.z_dim = z_dim
 
+        self.dance_steps = []
+        self.needs_cleaning = False
+
     def get_targets_y_spaced(self):
         a, b = self.start
         r = self.diameter / 2.0
@@ -97,9 +100,9 @@ class HeartValveModel(object):
                 self.z_heights[target_idx] += z
                 self.z_heights[anchor_idx] += z
                 if tic == 1:
-                    self.dance(anchor, target)
+                    self.pre_dance(anchor, target)
                 else:
-                    self.dance(target, anchor)
+                    self.pre_dance(target, anchor)
                 tic *= -1
             g.set_valve(0, 0)
 
@@ -126,11 +129,16 @@ class HeartValveModel(object):
                 self.z_heights[target_idx] += z
                 self.z_heights[anchor_idx] += z
                 if tic == 1:
-                    self.dance(anchor, target)
+                    self.pre_dance(anchor, target)
                 else:
-                    self.dance(target, anchor)
+                    self.pre_dance(target, anchor)
                 tic *= -1
             g.set_valve(0, 0)
+
+    def pre_dance(self, fro, to):
+        """ Ramp up for the dance.
+        """
+        self.dance_steps.append((fro, to))
 
     def dance(self, fro, to):
         """ Perform the ritual dance to appease the pHEMA gods.
@@ -141,7 +149,7 @@ class HeartValveModel(object):
         rway = self.runway if to[0] > fro[0] else -self.runway
         gnd_spd = self.ground_speed
         air_spd = self.air_speed
-        
+
         fro_level = math.floor(fro[2] / self.layer_thickness)
         to_level = math.floor(to[2] / self.layer_thickness)
         fro[0] -= fro_level * rway
@@ -151,22 +159,60 @@ class HeartValveModel(object):
         g.abs_move(fro[0] - rway, fro[1], **{z_dim: fro[2] + heaven})
         g.move(**{z_dim: -heaven})
 
+        if self.needs_cleaning is True:
+            return
+
         g.set_valve(0, 1)
         g.feed(gnd_spd)
         g.move(rway)
         g.dwell(self.stamp_time)
-        
+
+        if self.needs_cleaning is True:
+            return
+
         g.move(**{z_dim: heaven})
         g.feed(air_spd)
         g.abs_move(x=to[0], y=to[1], **{z_dim: to[2] + heaven})
-        
+
+        if self.needs_cleaning is True:
+            return
+
         g.move(**{z_dim: -heaven})
         g.feed(gnd_spd)
+
+        if self.needs_cleaning is True:
+            return
+
         g.move(rway)
         g.set_valve(0, 0)
+
+        if self.needs_cleaning is True:
+            return
+
         g.dwell(self.stamp_time)
         g.move(**{z_dim: heaven})
         g.feed(air_spd)
+
+    def draw_and_listen(self):
+        total_steps = len(self.dance_steps)
+        current_step = 0
+        while current_step < total_steps:
+            if self.needs_cleaning is True:
+                self.move_to_clean()
+                self.needs_cleaning = False
+                current_step -= 1
+            fro, to = self.dance_steps[current_step]
+            self.dance(fro, to)
+            current_step += 1
+
+    def clean(self):
+        self.needs_cleaning = True
+
+    def move_to_clean(self):
+        g.feed(30)
+        g.abs_move(**{self.z_dim: 30})
+        g.abs_move(x=10, y=10)
+        g.abs_move(**{self.z_dim: 5})
 
     def draw_linear(self, z=0):
         targets = self.get_targets_y_spaced()
@@ -258,11 +304,14 @@ if __name__ == '__main__':
     g.abs_move(x, y, **{valve.z_dim: valve.heaven * 2})
 
     g.feed(6)
+
     valve.draw_layers('bundles', 1)
+    valve.draw_and_listen()
+
     g.set_valve(0, 0)
     g.set_pressure(4, 0)
     g.move(X=50, Y=50, A=30)
-    
-    
+
+
     g.toggle_pressure(4)
     g.teardown()
