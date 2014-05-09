@@ -6,9 +6,11 @@ Email: jminardi@seas.harvard.edu
 
 """
 import math
+import threading
 import numpy as np
 
 from mecode import G
+from mecode.devices.efd_pressure_box import EFDPressureBox
 
 
 class HeartValveModel(object):
@@ -157,6 +159,7 @@ class HeartValveModel(object):
         to[2], fro[2] = (0.6 * self.layer_thickness, 0.6 * self.layer_thickness)
 
         g.abs_move(fro[0] - rway, fro[1], **{z_dim: fro[2] + heaven})
+        g.feed(air_spd)
         g.move(**{z_dim: -heaven})
 
         if self.needs_cleaning is True:
@@ -204,15 +207,30 @@ class HeartValveModel(object):
             fro, to = self.dance_steps[current_step]
             self.dance(fro, to)
             current_step += 1
+            
+    def start_thread(self):
+        self._thread = threading.Thread(target=self.draw_and_listen)
+        self._thread.start()
 
     def clean(self):
         self.needs_cleaning = True
 
     def move_to_clean(self):
-        g.feed(30)
+        g.set_valve(0, 0)
+        g.feed(200)
         g.abs_move(**{self.z_dim: 30})
         g.abs_move(x=10, y=10)
         g.abs_move(**{self.z_dim: 5})
+        sign = 1
+        g.feed(500)
+        for _ in range(100):
+            g.move(x=sign * 2)
+            sign *= -1
+        for _ in range(100):
+            g.move(y=sign * 2)
+            sign *= -1
+        g.feed(200)
+        g.abs_move(**{self.z_dim: 30})
 
     def draw_linear(self, z=0):
         targets = self.get_targets_y_spaced()
@@ -278,6 +296,7 @@ if __name__ == '__main__':
         outfile=r"C:\Users\Lewis Group\Documents\GitHub\heart-valve\out.pgm",
         #outfile=r'/Users/jack/Desktop/test.gcode',
         print_lines=False,
+        direct_write=True,
     )
     valve = HeartValveModel(
         z_dim='A',
@@ -291,14 +310,17 @@ if __name__ == '__main__':
         ground_speed=2,
         air_speed=8,
     )
+    pb = EFDPressureBox('COM4')
+    
     abs_0 = 49.08310
     setpt = abs_0 - 4
 
+    g.write('POSOFFSET CLEAR X Y A B')
     g.feed(20)
     g.abs_move(A=-setpt)
     g.set_home(A=abs_0 - setpt)
-    g.set_pressure(4, 30)
-    g.toggle_pressure(4)
+    pb.set_pressure(30)
+    pb.toggle_pressure()
 
     x, y = valve.get_targets_y_spaced()[valve.get_anchor_idxs()[0]]
     g.abs_move(x, y, **{valve.z_dim: valve.heaven * 2})
@@ -306,12 +328,13 @@ if __name__ == '__main__':
     g.feed(6)
 
     valve.draw_layers('bundles', 1)
-    valve.draw_and_listen()
+    valve.start_thread()
 
-    g.set_valve(0, 0)
-    g.set_pressure(4, 0)
-    g.move(X=50, Y=50, A=30)
+    #g.set_valve(0, 0)
+    #pb.set_pressure(0)
+    #g.move(X=50, Y=50, A=30)
 
 
-    g.toggle_pressure(4)
-    g.teardown()
+    #pb.toggle_pressure()
+    #pb.disconnect()
+    #g.teardown()
