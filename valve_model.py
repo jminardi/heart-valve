@@ -218,9 +218,9 @@ class HeartValveModel(object):
     def move_to_clean(self):
         g.set_valve(0, 0)
         g.feed(200)
-        g.abs_move(**{self.z_dim: 30})
-        g.abs_move(x=10, y=10)
-        g.abs_move(**{self.z_dim: 5})
+        g.abs_move(**{self.z_dim: 49})
+        g.abs_move(x=258, y=30)
+        g.abs_move(**{self.z_dim: 15})
         sign = 1
         g.feed(500)
         for _ in range(100):
@@ -230,7 +230,8 @@ class HeartValveModel(object):
             g.move(y=sign * 2)
             sign *= -1
         g.feed(200)
-        g.abs_move(**{self.z_dim: 30})
+        g.abs_move(**{self.z_dim: 49})
+        g.move(x=50)
 
     def draw_linear(self, z=0):
         targets = self.get_targets_y_spaced()
@@ -303,7 +304,7 @@ if __name__ == '__main__':
         line_spacing=0.03,
         diameter=25,
         layer_thickness=0.007,
-        start=(391.028, 16.094),
+        start=(365.465, 46.930),
         stamp_time=0.1,
         heaven=0.15,
         runway=0.7,
@@ -312,14 +313,14 @@ if __name__ == '__main__':
     )
     pb = EFDPressureBox('COM4')
     
-    abs_0 = 49.08310
+    abs_0 = 50.418380
     setpt = abs_0 - 4
 
     g.write('POSOFFSET CLEAR X Y A B')
     g.feed(20)
     g.abs_move(A=-setpt)
     g.set_home(A=abs_0 - setpt)
-    pb.set_pressure(30)
+    pb.set_pressure(7)
     pb.toggle_pressure()
 
     x, y = valve.get_targets_y_spaced()[valve.get_anchor_idxs()[0]]
@@ -327,7 +328,7 @@ if __name__ == '__main__':
 
     g.feed(6)
 
-    valve.draw_layers('bundles', 1)
+    valve.draw_layers('bundles', 2)
     valve.start_thread()
 
     #g.set_valve(0, 0)
