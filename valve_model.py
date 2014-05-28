@@ -16,7 +16,7 @@ from mecode.devices.efd_pressure_box import EFDPressureBox
 class HeartValveModel(object):
 
     def __init__(self, diameter=25, line_spacing=0.1, start=(0, 0),
-                 num_anchors=8, anchor_width=10, heaven=2, layer_thickness=.15,
+                 num_anchors=8, anchor_width=6, heaven=2, layer_thickness=.15,
                  arc_radius=100, z_dim='z', stamp_time=0.5, runway=3,
                  ground_speed=0.5, air_speed=1):
         """
@@ -72,18 +72,19 @@ class HeartValveModel(object):
         targets_y = np.hstack((y, y[::-1]))
         return np.array([targets_x, targets_y]).T
 
-    def get_anchor_idxs(self):
+    def get_anchor_idxs(self, shift=0):
         targets = self.get_targets_y_spaced()
         anchors_idx = np.linspace(0, len(targets), self.num_anchors + 1)
         anchors_idx = np.round(anchors_idx[:-1])
         anchors_idx += (anchors_idx[1] - anchors_idx[0]) / 2
+        anchors_idx += shift * 0.5 * self.anchor_width
         return anchors_idx.astype('int')
 
-    def draw_bundles(self):
+    def draw_bundles(self, shift):
         targets = self.get_targets_y_spaced()
         right_targets = targets[len(targets) / 2:]
         num_left_anchors = self.num_anchors / 2
-        anchor_idxs = self.get_anchor_idxs()
+        anchor_idxs = self.get_anchor_idxs(shift)
         z = self.layer_thickness
         tic = 1
         for i in range(self.num_anchors / 2):
@@ -108,18 +109,18 @@ class HeartValveModel(object):
                 tic *= -1
             g.set_valve(0, 0)
 
-    def draw_bundles_right(self):
+    def draw_bundles_right(self, shift):
         targets = self.get_targets_y_spaced()
         left_targets = targets[:len(targets) / 2]
         num_right_anchors = self.num_anchors / 2
-        anchor_idxs = self.get_anchor_idxs()
+        anchor_idxs = self.get_anchor_idxs(shift)
         z = self.layer_thickness
         tic = 1
         for i in range(self.num_anchors / 2):
             for j in range(len(left_targets) / num_right_anchors):
                 offset = (j % self.anchor_width) - (self.anchor_width / 2)
                 target_idx = ((j * num_right_anchors) - i)
-                anchor_idx = anchor_idxs[i + num_right_anchors] - offset
+                anchor_idx = (anchor_idxs[i + num_right_anchors] - offset) % len(targets)
                 if target_idx < 0 or anchor_idx < 0:
                     continue
                 target = targets[target_idx]
@@ -218,9 +219,9 @@ class HeartValveModel(object):
     def move_to_clean(self):
         g.set_valve(0, 0)
         g.feed(200)
-        g.abs_move(**{self.z_dim: 49})
-        g.abs_move(x=258, y=30)
-        g.abs_move(**{self.z_dim: 15})
+        g.abs_move(**{self.z_dim: 45.2})
+        g.abs_move(x=283, y=13)
+        g.abs_move(**{self.z_dim: 10})
         sign = 1
         g.feed(500)
         for _ in range(100):
@@ -230,7 +231,7 @@ class HeartValveModel(object):
             g.move(y=sign * 2)
             sign *= -1
         g.feed(200)
-        g.abs_move(**{self.z_dim: 49})
+        g.abs_move(**{self.z_dim: 45.2})
         g.move(x=50)
 
     def draw_linear(self, z=0):
@@ -283,9 +284,9 @@ class HeartValveModel(object):
         elif style == 'bundles':
             for i in range(num):
                 if i % 2 == 0:
-                    self.draw_bundles()
+                    self.draw_bundles(i/2)
                 else:
-                    self.draw_bundles_right()
+                    self.draw_bundles_right(i/2)
             return
         height = self.layer_thickness
         for z_height in np.arange(height, height * (num + 1), height):
@@ -293,6 +294,15 @@ class HeartValveModel(object):
 
 
 if __name__ == '__main__':
+    
+    
+    x = 365.282
+    y = 28.158
+    z = 47.962270
+    speed = 6
+    pressure = 70
+    num_layers = 30
+    
     g = G(
         outfile=r"C:\Users\Lewis Group\Documents\GitHub\heart-valve\out.pgm",
         #outfile=r'/Users/jack/Desktop/test.gcode',
@@ -302,34 +312,35 @@ if __name__ == '__main__':
     valve = HeartValveModel(
         z_dim='A',
         line_spacing=0.03,
-        diameter=25,
+        diameter=15,
         layer_thickness=0.007,
-        start=(365.465, 46.930),
+        start=(x, y),
         stamp_time=0.1,
         heaven=0.15,
-        runway=0.7,
+        runway=0.2,
         ground_speed=2,
         air_speed=8,
     )
     pb = EFDPressureBox('COM4')
     
-    abs_0 = 50.418380
+    abs_0 = z
     setpt = abs_0 - 4
 
     g.write('POSOFFSET CLEAR X Y A B')
     g.feed(20)
     g.abs_move(A=-setpt)
     g.set_home(A=abs_0 - setpt)
-    pb.set_pressure(7)
+    pb.set_pressure(pressure)
     pb.toggle_pressure()
 
     x, y = valve.get_targets_y_spaced()[valve.get_anchor_idxs()[0]]
     g.abs_move(x, y, **{valve.z_dim: valve.heaven * 2})
 
-    g.feed(6)
+    g.feed(speed)
 
-    valve.draw_layers('bundles', 2)
+    valve.draw_layers('bundles', 30)
     valve.start_thread()
+    #valve.draw_and_listen()
 
     #g.set_valve(0, 0)
     #pb.set_pressure(0)
