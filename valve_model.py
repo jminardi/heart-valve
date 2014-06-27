@@ -1,5 +1,4 @@
 """
-This code outputs the toolpath to create a heart valve
 
 Author: Jack Minardi
 Email: jminardi@seas.harvard.edu
@@ -13,7 +12,7 @@ from mecode import G
 from mecode.devices.efd_pressure_box import EFDPressureBox
 
 
-class HeartValveModel(object):
+class Model(object):
 
     def __init__(self, diameter=25, line_spacing=0.1, start=(0, 0),
                  num_anchors=8, anchor_width=6, heaven=2, layer_thickness=.15,
@@ -144,7 +143,8 @@ class HeartValveModel(object):
         self.dance_steps.append((fro, to))
 
     def dance(self, fro, to):
-        """ Perform the ritual dance to appease the pHEMA gods.
+        """ Perform the ritual dance to appease the PECUU gods.
+        This is the actual movement procedure.
         """
         to, fro = list(to), list(fro)
         z_dim = self.z_dim
@@ -153,27 +153,30 @@ class HeartValveModel(object):
         gnd_spd = self.ground_speed
         air_spd = self.air_speed
 
+        # The following lines are a HACK
         fro_level = math.floor(fro[2] / self.layer_thickness)
         to_level = math.floor(to[2] / self.layer_thickness)
         fro[0] -= fro_level * rway
         to[0] += to_level * rway
         to[2], fro[2] = (0.6 * self.layer_thickness, 0.6 * self.layer_thickness)
 
+        # This moves right above the first point
         g.abs_move(fro[0] - rway, fro[1], **{z_dim: fro[2] + heaven})
         g.feed(air_spd)
-        g.move(**{z_dim: -heaven})
+        g.move(**{z_dim: -heaven})  #this move drops from the air down to the first point
 
         if self.needs_cleaning is True:
             return
 
         g.set_valve(0, 1)
         g.feed(gnd_spd)
-        g.move(rway)
+        g.move(rway)  #this moves along the ground to build the "runway"
         g.dwell(self.stamp_time)
 
         if self.needs_cleaning is True:
             return
 
+        # These moves are the actual filament
         g.move(**{z_dim: heaven})
         g.feed(air_spd)
         g.abs_move(x=to[0], y=to[1], **{z_dim: to[2] + heaven})
@@ -181,23 +184,27 @@ class HeartValveModel(object):
         if self.needs_cleaning is True:
             return
 
+        # Drop down at the end point of the filament
         g.move(**{z_dim: -heaven})
         g.feed(gnd_spd)
 
         if self.needs_cleaning is True:
             return
 
-        g.move(rway)
+        g.move(rway)  # draw the last runway
         g.set_valve(0, 0)
 
         if self.needs_cleaning is True:
             return
 
         g.dwell(self.stamp_time)
-        g.move(**{z_dim: heaven})
+        g.move(**{z_dim: heaven})  # go back up to a safe height
         g.feed(air_spd)
 
     def draw_and_listen(self):
+        """ Master controller that checks for requested cleaning, and otherwise
+        calls the dance functions for each filament.
+        """
         total_steps = len(self.dance_steps)
         current_step = 0
         while current_step < total_steps:
@@ -208,7 +215,7 @@ class HeartValveModel(object):
             fro, to = self.dance_steps[current_step]
             self.dance(fro, to)
             current_step += 1
-            
+
     def start_thread(self):
         self._thread = threading.Thread(target=self.draw_and_listen)
         self._thread.start()
@@ -235,6 +242,8 @@ class HeartValveModel(object):
         g.move(x=50)
 
     def draw_linear(self, z=0):
+        """ Only used with PDMS
+        """
         targets = self.get_targets_y_spaced()
         left_targets = targets[:len(targets) / 2]
         right_targets = targets[len(targets) / 2:]
@@ -255,6 +264,8 @@ class HeartValveModel(object):
         g.clip('z', '-y', heaven)
 
     def draw_basic_arcs(self, z=0):
+        """ Only used with PDMS
+        """
         targets = self.get_targets_y_spaced()
         left_targets = targets[:len(targets) / 2]
         right_targets = targets[len(targets) / 2:]
@@ -277,6 +288,9 @@ class HeartValveModel(object):
         g.clip('z', '-y', heaven)
 
     def draw_layers(self, style='linear', num=5):
+        """ This function computes the bundle positions and needed dance steps,
+        it does not actaully print.
+        """
         if style == 'linear':
             draw = self.draw_linear
         elif style == 'arc':
@@ -294,23 +308,23 @@ class HeartValveModel(object):
 
 
 if __name__ == '__main__':
-    
-    
-    x = 365.282
-    y = 28.158
+
+
+    x = 0  # change these to 0 when testing
+    y = 0  # change these to 0 when testing
     z = 47.962270
     speed = 6
     pressure = 70
     num_layers = 30
-    
+
     g = G(
-        outfile=r"C:\Users\Lewis Group\Documents\GitHub\heart-valve\out.pgm",
-        #outfile=r'/Users/jack/Desktop/test.gcode',
+        #outfile=r"C:\Users\Lewis Group\Documents\GitHub\out.pgm",  # valid on robomama printer computer
+        outfile=r'/Users/jack/Desktop/test.gcode',  # this is where the GCode file is written
         print_lines=False,
-        direct_write=True,
+        direct_write=True,  # silence for testing
     )
-    valve = HeartValveModel(
-        z_dim='A',
+    model = Model(
+        z_dim='z',  # change this to 'z' when testing, and 'A' when printing
         line_spacing=0.03,
         diameter=15,
         layer_thickness=0.007,
@@ -321,8 +335,8 @@ if __name__ == '__main__':
         ground_speed=2,
         air_speed=8,
     )
-    pb = EFDPressureBox('COM4')
-    
+    #pb = EFDPressureBox('COM4')  #silence this when testing
+
     abs_0 = z
     setpt = abs_0 - 4
 
@@ -330,17 +344,17 @@ if __name__ == '__main__':
     g.feed(20)
     g.abs_move(A=-setpt)
     g.set_home(A=abs_0 - setpt)
-    pb.set_pressure(pressure)
-    pb.toggle_pressure()
-
-    x, y = valve.get_targets_y_spaced()[valve.get_anchor_idxs()[0]]
-    g.abs_move(x, y, **{valve.z_dim: valve.heaven * 2})
+    #pb.set_pressure(pressure)  #silence this when testing
+    #pb.toggle_pressure()  #silence this when testing
+    x, y = model.get_targets_y_spaced()[model.get_anchor_idxs()[0]]
+    g.abs_move(x, y, **{model.z_dim: model.heaven * 2})
 
     g.feed(speed)
 
-    valve.draw_layers('bundles', 30)
-    valve.start_thread()
-    #valve.draw_and_listen()
+    model.draw_layers('bundles', 30)
+    model.start_thread()
+
+    #model.draw_and_listen()
 
     #g.set_valve(0, 0)
     #pb.set_pressure(0)
